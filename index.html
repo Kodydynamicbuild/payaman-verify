@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify · My Community</title>
+<style>
+  /* ===== Palitan dito ang mga kulay ===== */
+  :root {
+    --bg: #0f1117;
+    --card: #181b24;
+    --text: #e8eaf0;
+    --muted: #9aa1b2;
+    --accent: #6c7cff;     /* kulay ng button */
+    --accent-2: #5866f0;   /* kulay ng button kapag naka-hover */
+    --line: #2a2f3d;
+    --ok: rgba(62,207,142,.15);
+    --bad: rgba(255,107,107,.15);
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f4f5f9; --card: #fff; --text: #1b1e27; --muted: #5d6475; --line: #e2e5ee; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    background-image: radial-gradient(circle at 20% 0%, rgba(108,124,255,.18), transparent 45%);
+  }
+  .card {
+    width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 18px; padding: 32px 28px; box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  }
+  .logo {
+    width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center;
+    font-size: 30px; margin-bottom: 16px; background: rgba(108,124,255,.15); overflow: hidden;
+  }
+  .logo img { width: 100%; height: 100%; object-fit: cover; }
+  .logo.ok { background: var(--ok); } .logo.bad { background: var(--bad); }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  p { color: var(--muted); margin: 0 0 20px; }
+  ol { margin: 0 0 20px; padding: 16px 16px 16px 36px; border: 1px solid var(--line); border-radius: 12px; }
+  li { margin: 4px 0; }
+  .btn {
+    display: block; width: 100%; text-align: center; text-decoration: none; border: 0; border-radius: 12px;
+    padding: 13px 16px; font: 600 16px/1 inherit; color: #fff; background: var(--accent); cursor: pointer;
+    transition: background .15s;
+  }
+  .btn:hover { background: var(--accent-2); }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== Unang makikita ng member ===== -->
+<main class="card" id="start">
+  <!-- Logo: palitan ang emoji ng <img src="logo.png" alt=""> kung may logo ka (ilagay ang logo.png sa public folder) -->
+  <div class="logo">🛡️</div>
+
+  <!-- Pangalan ng server -->
+  <h1>Welcome to My Community</h1>
+  <p>Click Verify to unlock the server.</p>
+
+  <!-- Rules: magdagdag o magbura ng <li>. Puwede ring burahin ang buong <ol> kung ayaw mo ng rules. -->
+  <ol>
+    <li>Be respectful to everyone</li>
+    <li>No spam or self-promotion</li>
+    <li>No NSFW content</li>
+    <li>Follow Discord's Terms of Service</li>
+  </ol>
+
+  <button class="btn" id="verify">Verify</button>
+</main>
+
+<!-- ===== Resulta (huwag burahin) ===== -->
+<main class="card" id="result" hidden>
+  <div class="logo" id="r-icon"></div>
+  <h1 id="r-title"></h1>
+  <p id="r-msg"></p>
+  <a class="btn" id="r-btn" hidden>Back to Discord</a>
+</main>
+
+<script>
+  const token = new URLSearchParams(location.search).get('t');
+  const btn = document.getElementById('verify');
+
+  function show(ok, title, msg, serverUrl) {
+    document.getElementById('start').hidden = true;
+    document.getElementById('result').hidden = false;
+    const icon = document.getElementById('r-icon');
+    icon.textContent = ok ? '✅' : '⚠️';
+    icon.className = 'logo ' + (ok ? 'ok' : 'bad');
+    document.getElementById('r-title').textContent = title;
+    document.getElementById('r-msg').textContent = msg;
+    const back = document.getElementById('r-btn');
+    if (serverUrl) { back.href = serverUrl; back.hidden = false; }
+  }
+
+  if (!token) {
+    show(false, 'Open this from Discord', 'Click the Verify button in the Discord server to get your personal link.');
+  }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Verifying…';
+    try {
+      const res = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ t: token }),
+      });
+      const data = await res.json();
+      show(data.ok, data.title, data.message, data.server_url);
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Verify';
+      alert('Could not connect. Check your internet and try again.');
+    }
+  });
+</script>
+</body>
+</html>
